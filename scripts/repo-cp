@@ -38,34 +38,48 @@ except ImportError:
 
 
 
-def repo_copy():
+def repo_copy(config=None,source=None,dest=None,pids=None,export_format='migrate'):
 
-    parser = argparse.ArgumentParser()
+    # if config is None, assume command-line
+    if not config:
 
-    # config file options
-    cfg_args = parser.add_argument_group('Config file options')
-    cfg_args.add_argument('--config', '-c',
-        default='$HOME/.repocpcfg',
-        help='Load the specified config file (default: %(default)s')
+        parser = argparse.ArgumentParser()
 
-    cfg_args.add_argument('source',
-        help='Source repository for content to be copied')
-    cfg_args.add_argument('dest',
-        help='Destination repository for content to be copied')
+        # config file options
+        cfg_args = parser.add_argument_group('Config file options')
+        cfg_args.add_argument('--config', '-c',
+            default='$HOME/.repocpcfg',
+            help='Load the specified config file (default: %(default)s')
 
-    # list of pids
-    parser.add_argument('pids', metavar='PID', nargs='*',
-        help='list of pids to copy')
-    parser.add_argument('--file', '-f',
-        help='Input file with a list of pids, one pid per line',
-        required=False)
-    parser.add_argument('--export-format', '-e',
-        choices=['migrate', 'archive'], default='migrate',
-        help='Fedora export format to use.  Use archive if migrate exports ' \
-           + 'fail with checksum errors or if content URLs are not accessible '
-           + 'to the destination server (default: %(default)s')
+        cfg_args.add_argument('source',
+            help='Source repository for content to be copied')
+        cfg_args.add_argument('dest',
+            help='Destination repository for content to be copied')
 
-    args = parser.parse_args()
+        # list of pids
+        parser.add_argument('pids', metavar='PID', nargs='*',
+            help='list of pids to copy')
+        parser.add_argument('--file', '-f',
+            help='Input file with a list of pids, one pid per line',
+            required=False)
+        parser.add_argument('--export-format', '-e',
+            choices=['migrate', 'archive'], default='migrate',
+            help='Fedora export format to use.  Use archive if migrate exports ' \
+               + 'fail with checksum errors or if content URLs are not accessible '
+               + 'to the destination server (default: %(default)s')
+
+        args = parser.parse_args()
+
+    # else, spawn args object with passed parameters
+    else:
+        class Args(object):
+            def __init__(self,config,source,dest,pids):
+                self.config = config   
+                self.source = source
+                self.dest = dest
+                self.pids = pids
+                self.export_format = export_format
+        args = Args(config,source,dest,pids)
 
     cfg = ConfigParser.ConfigParser()
     configfile_path = args.config.replace('$HOME', os.environ['HOME'])
@@ -124,6 +138,8 @@ def repo_copy():
                         ' Estimated size: %s || ' % humanize_file_size(size_estimate)]
                     current_widgets += widgets
                     pbar = ProgressBar(widgets=current_widgets, maxval=size_estimate)
+            else:
+            	pbar = None
 
             response = src_repo.api.export(pid, context=args.export_format, stream=True)
 
