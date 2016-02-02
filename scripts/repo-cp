@@ -38,40 +38,10 @@ except ImportError:
 
 
 
-def repo_copy(config=None,source=None,dest=None,pids=None,export_format='migrate'):
+def repo_copy(args=None,config=None,source=None,dest=None,pids=None,export_format='migrate'):
 
-    # if config is None, assume command-line
-    if not config:
-
-        parser = argparse.ArgumentParser()
-
-        # config file options
-        cfg_args = parser.add_argument_group('Config file options')
-        cfg_args.add_argument('--config', '-c',
-            default='$HOME/.repocpcfg',
-            help='Load the specified config file (default: %(default)s')
-
-        cfg_args.add_argument('source',
-            help='Source repository for content to be copied')
-        cfg_args.add_argument('dest',
-            help='Destination repository for content to be copied')
-
-        # list of pids
-        parser.add_argument('pids', metavar='PID', nargs='*',
-            help='list of pids to copy')
-        parser.add_argument('--file', '-f',
-            help='Input file with a list of pids, one pid per line',
-            required=False)
-        parser.add_argument('--export-format', '-e',
-            choices=['migrate', 'archive'], default='migrate',
-            help='Fedora export format to use.  Use archive if migrate exports ' \
-               + 'fail with checksum errors or if content URLs are not accessible '
-               + 'to the destination server (default: %(default)s')
-
-        args = parser.parse_args()
-
-    # else, spawn args object with passed parameters
-    else:
+    # if no arguments spawn args object with passed parameters
+    if not args:
         class Args(object):
             def __init__(self,config,source,dest,pids):
                 self.config = config   
@@ -81,6 +51,7 @@ def repo_copy(config=None,source=None,dest=None,pids=None,export_format='migrate
                 self.export_format = export_format
         args = Args(config,source,dest,pids)
 
+    # parse config file
     cfg = ConfigParser.ConfigParser()
     configfile_path = args.config.replace('$HOME', os.environ['HOME'])
     with open(configfile_path) as cfgfile:
@@ -244,4 +215,33 @@ class FileSizeCounter(Counter):
 
 
 if __name__ == '__main__':
-    repo_copy()
+
+    # if run as script, parse arguments
+    parser = argparse.ArgumentParser()
+
+    # config file options
+    cfg_args = parser.add_argument_group('Config file options')
+    cfg_args.add_argument('--config', '-c',
+        default='$HOME/.repocpcfg',
+        help='Load the specified config file (default: %(default)s')
+
+    cfg_args.add_argument('source',
+        help='Source repository for content to be copied')
+    cfg_args.add_argument('dest',
+        help='Destination repository for content to be copied')
+
+    # list of pids
+    parser.add_argument('pids', metavar='PID', nargs='*',
+        help='list of pids to copy')
+    parser.add_argument('--file', '-f',
+        help='Input file with a list of pids, one pid per line',
+        required=False)
+    parser.add_argument('--export-format', '-e',
+        choices=['migrate', 'archive'], default='migrate',
+        help='Fedora export format to use.  Use archive if migrate exports ' \
+           + 'fail with checksum errors or if content URLs are not accessible '
+           + 'to the destination server (default: %(default)s')
+
+    args = parser.parse_args()
+
+    repo_copy(args=args)
