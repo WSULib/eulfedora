@@ -22,6 +22,7 @@ import argparse
 import ConfigParser
 import math
 import os
+import re
 
 from eulxml.xmlmap import load_xmlobject_from_string
 from eulfedora.server import Repository
@@ -38,7 +39,7 @@ except ImportError:
 
 
 
-def repo_copy(args=None,config=None,source=None,dest=None,pids=None,export_format='migrate'):
+def repo_copy(args=None, config=None, source=None, dest=None, pids=None, export_format='migrate', host_rewrite=False):
 
     # if no arguments spawn args object with passed parameters
     if not args:
@@ -49,11 +50,16 @@ def repo_copy(args=None,config=None,source=None,dest=None,pids=None,export_forma
                 self.dest = dest
                 self.pids = pids
                 self.export_format = export_format
+                self.host_rewrite=host_rewrite
         args = Args(config,source,dest,pids)
 
     # parse config file
     cfg = ConfigParser.ConfigParser()
-    configfile_path = args.config.replace('$HOME', os.environ['HOME'])
+    try:
+        configfile_path = args.config.replace('$HOME', os.environ['HOME'])
+    except:
+        print "HOME variable not set, skipping"
+        configfile_path = args.config
     with open(configfile_path) as cfgfile:
             cfg.readfp(cfgfile)
 
@@ -128,7 +134,21 @@ def repo_copy(args=None,config=None,source=None,dest=None,pids=None,export_forma
                         if pbar.maxval < size:
                             pbar.maxval = size
                         pbar.update(size)
+                    # run chunk through filters
+                    chunk = chunkEdit(chunk)
                     yield chunk
+
+
+            def chunkEdit(chunk):
+
+                # rewrite host
+                if args.host_rewrite != False:
+                    orig_host, new_host = args.host_rewrite.split("|")
+                    chunk = re.sub(orig_host,new_host,chunk)
+
+                # finally, return chunk
+                return chunk
+
 
         except RequestFailed as err:
             err_type = 'Error'
