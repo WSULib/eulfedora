@@ -39,7 +39,7 @@ except ImportError:
 
 
 
-def repo_copy(args=None, config=None, source=None, dest=None, pids=None, export_format='migrate', host_rewrite=False):
+def repo_copy(args=None, config=None, source=None, dest=None, pids=None, export_format='migrate', host_rewrite=False, print_chunk=False):
 
     # if no arguments spawn args object with passed parameters
     if not args:
@@ -51,6 +51,7 @@ def repo_copy(args=None, config=None, source=None, dest=None, pids=None, export_
                 self.pids = pids
                 self.export_format = export_format
                 self.host_rewrite=host_rewrite
+                self.print_chunk = print_chunk
         args = Args(config,source,dest,pids)
 
     # parse config file
@@ -141,12 +142,15 @@ def repo_copy(args=None, config=None, source=None, dest=None, pids=None, export_
 
             def chunkEdit(chunk):
 
+
                 # rewrite host
                 if args.host_rewrite != False:
                     orig_host, new_host = args.host_rewrite.split("|")
                     chunk = re.sub(orig_host,new_host,chunk)
 
                 # finally, return chunk
+                if args.print_chunk == True:
+                    print chunk                
                 return chunk
 
 
